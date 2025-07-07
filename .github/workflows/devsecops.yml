@@ -21,16 +21,17 @@ jobs:
       run: npm install
 
     - name: Run SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@v1
+      uses: SonarSource/sonarqube-scan-action@v5
       with:
         args: >
-          -Dsonar.projectKey=devops-hello-api
+          -Dsonar.projectKey=fekri600_devsecops
+          sonar.organization=fekri600
           -Dsonar.sources=.
-          -Dsonar.host.url=http://your-host:9000
+          -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
     - name: Build Docker image
-      run: docker build -t devops-hello-api .
+      run: docker build -t devsecops .
 
     - name: Scan Docker image with Trivy
       uses: aquasecurity/trivy-action@master
