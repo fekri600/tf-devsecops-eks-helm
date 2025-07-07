@@ -1,0 +1,42 @@
+name: DevSecOps CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@v1
+      with:
+        args: >
+          -Dsonar.projectKey=devops-hello-api
+          -Dsonar.sources=.
+          -Dsonar.host.url=http://your-host:9000
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+    - name: Build Docker image
+      run: docker build -t devops-hello-api .
+
+    - name: Scan Docker image with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'devops-hello-api'
+        format: 'table'
+        exit-code: '0'
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
