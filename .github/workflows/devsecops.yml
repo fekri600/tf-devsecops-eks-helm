@@ -25,7 +25,7 @@ jobs:
       with:
         args: >
           -Dsonar.projectKey=fekri600_devsecops
-          sonar.organization=fekri600
+          -Dsonar.organization=fekri600
           -Dsonar.sources=.
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
