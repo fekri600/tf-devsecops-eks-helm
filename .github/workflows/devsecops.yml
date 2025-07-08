@@ -36,12 +36,12 @@ jobs:
           -Dsonar.host.url=https://sonarcloud.io
 
     - name: Build Docker image
-      run: docker build -t devops-hello-api .
+      run: docker build -t devsecops:latest .
 
     - name: Scan Docker image with Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'devops-hello-api'
+        image-ref: 'devsecops'
         format: 'table'
         exit-code: '0'
         vuln-type: 'os,library'
