@@ -4,6 +4,10 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
@@ -22,22 +26,41 @@ jobs:
 
     - name: Run SonarQube Scan
       uses: SonarSource/sonarqube-scan-action@v5
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
         args: >
           -Dsonar.projectKey=fekri600_devsecops
           -Dsonar.organization=fekri600
           -Dsonar.sources=.
           -Dsonar.host.url=https://sonarcloud.io
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
     - name: Build Docker image
-      run: docker build -t devsecops .
+      run: docker build -t devops-hello-api .
 
     - name: Scan Docker image with Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'devsecops'
+        image-ref: 'devops-hello-api'
         format: 'table'
         exit-code: '0'
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
+
+    - name: Configure AWS credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: us-east-1
+
+    - name: Log in to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Tag and push Docker image to ECR
+      env:
+        ECR_REGISTRY: 123456789012.dkr.ecr.us-east-1.amazonaws.com
+        ECR_REPOSITORY: devops-hello-api
+      run: |
+        IMAGE_TAG=${{ github.sha }}
+        docker tag devops-hello-api:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
