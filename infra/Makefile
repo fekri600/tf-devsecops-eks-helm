@@ -8,8 +8,8 @@ deploy:
 	@echo "✅ Apply completed."
 
 	@echo " Setting GitHub secrets..."
-
 	gh secret set AWS_ROLE_TO_ASSUME --body "$$(terraform output -raw TRUST_ROLE_GITHUB)"
+
 
 delete:
 	@echo " Destroying ECR Repository..."
