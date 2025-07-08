@@ -9,7 +9,8 @@
         "ecr:CompleteMultipartUpload",
         "ecr:InitiateLayerUpload",
         "ecr:PutImage",
-        "ecr:UploadLayerPart"
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload"
       ],
       "Resource": "*"
     }
