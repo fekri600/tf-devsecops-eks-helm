@@ -9,7 +9,8 @@ deploy:
 
 	@echo " Setting GitHub secrets..."
 	gh secret set AWS_ROLE_TO_ASSUME --body "$$(terraform output -raw TRUST_ROLE_GITHUB)"
-
+	gh secret set ECR_REGISTRY --body "$$(terraform output -raw ecr_repo_url)"
+	gh secret set ECR_REPOSITORY --body "$$(terraform output -raw ecr_repo_name)"
 
 delete:
 	@echo " Destroying ECR Repository..."
