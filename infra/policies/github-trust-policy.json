@@ -11,7 +11,7 @@
         "Condition": {
           "StringLike": {
             "token.actions.githubusercontent.com:sub": [
-              "repo:fekri600/devsecops:ref:refs/heads/main"
+              "repo:fekri600/devsecops:*"
             ]
           }
         }
