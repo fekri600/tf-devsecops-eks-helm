@@ -11,6 +11,7 @@ deploy:
 	gh secret set AWS_ROLE_TO_ASSUME --body "$$(terraform output -raw TRUST_ROLE_GITHUB)"
 	gh secret set ECR_REPO_URL --body "$$(terraform output -raw ecr_repo_url)"
 
+
 delete:
 	@echo " Destroying ECR Repository..."
 	terraform destroy -auto-approve
@@ -19,5 +20,5 @@ delete:
 	gh secret delete AWS_ROLE_TO_ASSUME || echo "Secret not found or already deleted."
 
 
-	@echo "✅ Delete completed."
+	@echo "✅ Delete completed."  
 

@@ -13,15 +13,15 @@ locals {
 
 # Define the GitHub OIDC provider in AWS (if not already set up)
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = var.oidc_url
-  client_id_list  = var.oidc_client_id_list
-  thumbprint_list = var.oidc_thumbprint_list
+  url             = var.oidc.url
+  client_id_list  = var.oidc.client_id_list
+  thumbprint_list = var.oidc.thumbprint_list
 }
 
 
 # Define the IAM role GitHub Actions can assume using OIDC
 resource "aws_iam_role" "github_trust_role" {
-  name = var.iam_role_name
+  name = var.oidc.iam_role_name
 
   assume_role_policy = templatefile("${var.policies_path}/github-trust-policy.json", {
     oidc_provider_arn = local.oidc_provider_arn
@@ -31,7 +31,7 @@ resource "aws_iam_role" "github_trust_role" {
 
 # Define the IAM policy with necessary permissions
 resource "aws_iam_policy" "github_devops_policy" {
-  name = var.iam_policy_name
+  name = var.oidc.iam_policy_name
   policy = templatefile("${var.policies_path}/github-permission-policy.json", {
 
   })

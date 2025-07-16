@@ -1,4 +1,4 @@
-name: DevSecOps CI
+name: Secure ECR-to-EKS Pipeline
 
 on:
   push:
@@ -64,3 +64,39 @@ jobs:
         IMAGE_TAG=${{ github.sha }}
         docker tag devsecops:latest $ECR_REPO_URL:$IMAGE_TAG
         docker push $ECR_REPO_URL:$IMAGE_TAG
+
+  deploy-terraform:
+    name: Deploy to EKS via Terraform
+    needs: build-and-scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app_deploy
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: us-east-1
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.11.4
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Plan with image tag
+      run: terraform plan \
+        -var="helm.image_tag=${{ github.sha }}" \
+        -var="ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
+
+    - name: Terraform Apply with image tag
+      run: terraform apply -auto-approve \
+        -var="helm.image_tag=${{ github.sha }}" \
+        -var="ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
