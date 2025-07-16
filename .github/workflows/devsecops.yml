@@ -92,11 +92,13 @@ jobs:
       run: terraform init
 
     - name: Terraform Plan with image tag
-      run: terraform plan \
-        -var="helm.image_tag=${{ github.sha }}" \
-        -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
+      run: |
+        terraform plan \
+          -var="helm.image_tag=${{ github.sha }}" \
+          -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
 
     - name: Terraform Apply with image tag
-      run: terraform apply -auto-approve \
-        -var="helm.image_tag=${{ github.sha }}" \
-        -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
+      run: |
+        terraform apply -auto-approve \
+          -var="helm.image_tag=${{ github.sha }}" \
+          -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
