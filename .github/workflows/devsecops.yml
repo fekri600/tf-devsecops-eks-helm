@@ -91,11 +91,11 @@ jobs:
     - name: Terraform Init
       run: terraform init
 
-    - name: Terraform Plan with image tag
-      run: |
-        terraform plan \
-          -var="helm.image_tag=${{ github.sha }}" \
-          -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
+    # - name: Terraform Plan with image tag
+    #   run: |
+    #     terraform plan \
+    #       -var="helm.image_tag=${{ github.sha }}" \
+    #       -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
 
     - name: Terraform Apply with image tag
       run: |
