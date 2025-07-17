@@ -17,7 +17,6 @@ module "eks" {
 
 module "helm_release" {
   source           = "./helm_release"
-  cluster_name     = module.eks.cluster_name
-  ecr_repo_url     = module.ecr.ecr_repo_url
-  helm             = var.helm 
+  helm             = var.helm
+  helm_chart = local.helm_path  
 }

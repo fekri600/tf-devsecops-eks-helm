@@ -100,13 +100,11 @@ jobs:
     - name: Terraform Plan with image tag
       run: |
         terraform plan \
-          -target=helm_release.devsecops \
           -var="helm.image_tag=${{ github.sha }}" \
           -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
 
     - name: Terraform Apply with image tag
       run: |
         terraform apply -auto-approve \
-          -target=helm_release.devsecops \
           -var="helm.image_tag=${{ github.sha }}" \
           -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
