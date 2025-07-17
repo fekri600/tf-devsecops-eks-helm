@@ -14,4 +14,28 @@ oidc = {
   iam_policy_name = "github_permission_policy"  
 }
 
+# ---- EKS Cluster Configuration ----
+eks = {
+  cluster_version = "1.33"
+  eks_managed_node_groups = {
+    default = {
+      desired_size   = 2             # desired size of the node group
+      max_size       = 3             # max size of the node group
+      min_size       = 1             # min size of the node group
+      instance_types = ["t3.medium"] # instance types
+    }
+  }
+}
+
+# ---- Network Configuration ----
+network = {
+  enable_dns_support       = true                             # enable dns support
+  enable_dns_hostnames     = true                             # enable dns hostnames
+  vpc_cidr                 = "10.0.0.0/16"                    # vpc cidr
+  public_subnets           = ["10.0.1.0/24", "10.0.2.0/24"]   # public subnets
+  private_subnets          = ["10.0.11.0/24", "10.0.12.0/24"] # private subnets
+  availability_zones       = ["us-east-1a", "us-east-1b"]     # availability zones
+  eip_domain               = "vpc"                            # eip domain
+  default_route_cidr_block = "0.0.0.0/0"                      # default route cidr block
+}
 

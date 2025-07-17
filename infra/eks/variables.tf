@@ -12,9 +12,9 @@ variable "eks" {
   type = object({
     cluster_version = string
     eks_managed_node_groups = map(object({
-      desired_size = number
-      max_size     = number
-      min_size     = number
+      desired_size   = number
+      max_size       = number
+      min_size       = number
       instance_types = list(string)
     }))
   })
