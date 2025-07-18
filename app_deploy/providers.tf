@@ -22,7 +22,7 @@ provider "aws" {
 }
 
 data "aws_eks_cluster_auth" "this" {
-  name = var.helm.cluster_name
+  name = var.cluster_name
 }
 
 provider "helm" {

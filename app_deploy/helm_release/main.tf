@@ -1,7 +1,7 @@
 resource "helm_release" "app" {
-  name       = var.name
-  namespace  = var.namespace
-  chart      = var.helm_chart
+  name      = var.name
+  namespace = var.namespace
+  chart     = var.helm_chart
 
   set {
     name  = "image.repository"
