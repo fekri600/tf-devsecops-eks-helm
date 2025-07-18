@@ -100,6 +100,10 @@ jobs:
           --region us-east-1 \
           --name ${{ secrets.EKS_CLUSTER }}
     
+    - name: Helm cleanup (remove failed release if present)
+      run: |
+        helm uninstall devsecops-app --namespace default || true
+    
     - name: Terraform Init
       run: terraform init
 
