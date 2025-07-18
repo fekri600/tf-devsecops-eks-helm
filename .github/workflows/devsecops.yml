@@ -100,21 +100,6 @@ jobs:
           --region us-east-1 \
           --name ${{ secrets.EKS_CLUSTER }}
     
-    
-    - name: Debug - Check AWS CLI Version
-      run: aws --version
-  
-    - name: Debug - Check aws-iam-authenticator presence
-      run: which aws-iam-authenticator || echo "aws-iam-authenticator not found"
-    
-    - name: Debug - Verify Kubeconfig Exists 
-      run: cat ~/.kube/config
-    
-    - name: Debug - Test K8s Auth as Assumed Role 
-      run: |
-        kubectl auth can-i create configmaps -n kube-system
-    
-
     - name: Terraform Init
       run: terraform init
 
@@ -137,4 +122,36 @@ jobs:
           -var="cluster_name=${{ secrets.EKS_CLUSTER }}" \
           -var="cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
           -var="cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
+    
         
+        - name: Install Helm (for debug)
+          if: failure() && steps.apply.outcome == 'failure'
+          run: |
+            curl -sSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    
+        - name: Dump Helm status & pod details
+          if: failure() && steps.apply.outcome == 'failure'
+          continue-on-error: true            # don’t double-fail the job
+          env:
+            RELEASE:  devsecops-app           # <- your Helm release name
+            NAMESPACE: default                # <- your release namespace
+          run: |
+            echo "### Helm status"
+            helm status "$RELEASE" -n "$NAMESPACE" || true
+    
+            echo ""
+            echo "### Pods for $RELEASE"
+            kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/instance=$RELEASE -o wide || true
+    
+            # Loop through non-Running pods
+            for pod in $(kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/instance=$RELEASE \
+                         --field-selector=status.phase!=Running,status.phase!=Succeeded \
+                         -o jsonpath='{.items[*].metadata.name}'); do
+              echo ""
+              echo "###### DESCRIBE $pod"
+              kubectl describe pod "$pod" -n "$NAMESPACE" || true
+    
+              echo ""
+              echo "###### LOGS (last 200 lines) $pod"
+              kubectl logs --tail=200 "$pod" -n "$NAMESPACE" || true
+            done
