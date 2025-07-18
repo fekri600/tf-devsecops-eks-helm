@@ -100,41 +100,12 @@ jobs:
           --region us-east-1 \
           --name ${{ secrets.EKS_CLUSTER }}
     
-    - name: Import helm release into TF state if it already exists
-      id: import
+        # (after Terraform Init and kubeconfig)
+
+    - name: Helm cleanup (remove failed release if present)
       run: |
-        set -e
-        RELEASE=devsecops-app
-        NAMESPACE=default
-        TFADDR='module.helm_release.helm_release.app'
-      
-        echo "Attempting to manage Helm release: $RELEASE in namespace: $NAMESPACE for Terraform address: $TFADDR"
-      
-        # Check if Helm thinks the release exists and get its status
-        HELM_STATUS_OUTPUT=$(helm status "$RELEASE" -n "$NAMESPACE" 2>&1 || true)
-        if echo "$HELM_STATUS_OUTPUT" | grep -q "STATUS: deployed"; then # Check for "STATUS: deployed" specifically
-          echo "Helm release $RELEASE found and is DEPLOYED."
-      
-          # Check if it's already tracked in state
-          if terraform state list "$TFADDR" >/dev/null 2>&1 ; then
-            echo "Terraform is already managing $RELEASE – no import needed."
-          else
-            echo "::group::Importing $RELEASE into Terraform state..."
-            # Run import and capture output/errors. Remove || true to see import failures
-            terraform import "$TFADDR" "$RELEASE"
-            echo "::endgroup::"
-            echo "Import completed for $RELEASE."
-          fi
-        elif echo "$HELM_STATUS_OUTPUT" | grep -q "release: not found"; then
-          echo "Helm release $RELEASE not found in cluster – nothing to import. Terraform will create it."
-        else
-          # This branch covers cases where helm status returns something other than "deployed" or "not found"
-          echo "Helm release $RELEASE found, but not in 'deployed' status. Status output:"
-          echo "$HELM_STATUS_OUTPUT"
-          echo "This might indicate a stuck or failed release. Manual intervention (helm uninstall) may be required."
-          # You might want to fail the step here or explicitly uninstall based on status
-          exit 1 # Fail the step if it's in an unexpected state
-        fi
+        helm uninstall devsecops-app --namespace default || true
+
 
     - name: Terraform Init
       run: terraform init
