@@ -28,8 +28,8 @@ data "aws_eks_cluster_auth" "this" {
 provider "helm" {
   kubernetes {
     host                   = var.helm.cluster_endpoint
-    cluster_ca_certificate = base64decode(var.helm.cluster_ca_certificate_data[0].data)
-    token                  = ata.aws_eks_cluster_auth.this.token
+    cluster_ca_certificate = base64decode(var.helm.cluster_ca_certificate_data)
+    token                  = data.aws_eks_cluster_auth.this.token
   }
 }
 

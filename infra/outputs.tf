@@ -37,4 +37,10 @@ output "cluster_ca_certificate_data" {
   value = module.eks.eks_cluster_certificate_authority_data
 }
 
+data "aws_region" "current" {}
+
+output "current_region" {
+  description = "The AWS region currently being used"
+  value       = data.aws_region.current.name
+}
 
