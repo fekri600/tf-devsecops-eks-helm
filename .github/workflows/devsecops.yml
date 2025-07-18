@@ -102,6 +102,13 @@ jobs:
         aws eks update-kubeconfig \
           --region ${{ secrets.REGION }} \
           --name ${{ secrets.EKS_CLUSTER }}
+    
+    - name: Debug - Verify Kubeconfig Exists # <--- ADD THIS
+      run: cat ~/.kube/config
+    
+    - name: Debug - Test K8s Auth as Assumed Role # <--- ADD THIS
+      run: |
+        kubectl auth can-i create configmaps --namespace kube-system --as system:masters
 
     - name: Terraform Plan with image tag
       run: |
@@ -112,6 +119,7 @@ jobs:
           -var="cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
           -var="cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
     
+  
 
     - name: Terraform Apply with image tag
       run: |
