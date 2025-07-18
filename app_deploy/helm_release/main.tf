@@ -1,21 +1,20 @@
 resource "helm_release" "app" {
-  name      = "devsecops-app"
-  namespace = "default"
-  chart     = var.helm_chart
+  name       = var.name
+  namespace  = var.namespace
+  chart      = var.helm_chart
 
   set {
     name  = "image.repository"
-    value = var.helm.ecr_repo_url
+    value = var.ecr_repo_url
   }
 
   set {
     name  = "image.tag"
-    value = var.helm.image_tag
+    value = var.image_tag
   }
 
   set {
     name  = "replicaCount"
-    value = var.helm.replica_count
+    value = var.replica_count
   }
-
 }
