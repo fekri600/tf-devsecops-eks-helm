@@ -2,7 +2,12 @@ resource "helm_release" "app" {
   name      = var.name
   namespace = var.namespace
   chart     = var.helm_chart
-  cleanup_on_fail = true
+  # Give Helm more room before Terraform bails out
+  timeout          = 600    # seconds
+  wait             = true   # default, but be explicit
+  atomic           = true   # roll back on failure
+  recreate_pods    = true
+  cleanup_on_fail  = true   # you already set this
 
   set {
     name  = "image.repository"
