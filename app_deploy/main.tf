@@ -7,9 +7,8 @@ module "helm_release" {
   image_tag     = var.image_tag
   replica_count = var.replica_count
   helm_chart    = local.helm_path
-  depends_on = [module.configmap]
 }
 
-module "configmap" {
-  source = "./build_role"
-}
+# module "configmap" {
+#   source = "./build_role"
+# }

@@ -1,6 +1,6 @@
 module "oidc" {
-  source       = "./oidc" # path to the oidc module
-  oidc         = var.oidc # oidc configuration
+  source        = "./oidc"       # path to the oidc module
+  oidc          = var.oidc       # oidc configuration
   policies_path = local.policies # path to the policies directory
 }
 
@@ -8,7 +8,7 @@ module "oidc" {
 module "ecr" {
   source           = "./ecr"
   project_settings = var.project_settings
-  policies_path = local.policies
+  policies_path    = local.policies
 }
 
 module "vpc" {
@@ -17,10 +17,14 @@ module "vpc" {
   network          = var.network
 }
 
+
+
 module "eks" {
-  source           = "./eks"
-  project_settings = var.project_settings
-  eks              = var.eks
-  vpc_id           = module.vpc.vpc_id
-  subnet_id        = module.vpc.private_subnet_ids
+  source            = "./eks"
+  project_settings  = var.project_settings
+  eks               = var.eks
+  vpc_id            = module.vpc.vpc_id
+  subnet_id         = module.vpc.private_subnet_ids
+  github_trust_role = var.oidc.iam_role_name
+
 }

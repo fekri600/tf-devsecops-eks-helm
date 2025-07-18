@@ -1,4 +1,5 @@
 
+data "aws_caller_identity" "current" {}
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
@@ -31,6 +32,23 @@ module "eks" {
       most_recent = true
     }
   }
+
+
+access_entries = {
+  github_ci = {
+    principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.github_trust_role}"
+
+    policy_associations = {
+      admin = {
+        policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = {
+          type = "cluster"
+        }
+      }
+    }
+  }
+}
+
 
   tags = {
     Name = "${var.project_settings.name_prefix}-${var.project_settings.project}-eks-cluser"

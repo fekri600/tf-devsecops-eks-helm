@@ -49,6 +49,7 @@
       "Effect": "Allow",
       "Action": [
           "sts:GetServiceBearerToken",
+          "sts:GetCallerIdentity",
           "sts:AssumeRole" 
       ],
       "Resource": "*"

@@ -26,3 +26,8 @@ variable "vpc_id" {
 variable "subnet_id" {
   type = list(string)
 }
+
+
+variable "github_trust_role" {
+  type = string
+}
