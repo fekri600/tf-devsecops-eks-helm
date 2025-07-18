@@ -97,6 +97,12 @@ jobs:
     - name: Terraform Init
       run: terraform init
 
+    - name: Configure kubeconfig for EKS
+      run: |
+        aws eks update-kubeconfig \
+          --region ${{ secrets.RIGION }} \
+          --name ${{ secrets.EKS_CLUSTER }}
+
     - name: Terraform Plan with image tag
       run: |
         terraform plan \

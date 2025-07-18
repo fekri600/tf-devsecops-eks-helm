@@ -13,7 +13,7 @@ deploy:
 	gh secret set EKS_CLUSTER --body "$$(terraform output -raw cluster_name)"
 	gh secret set EKS_CLUSTER_ENDPOINT --body "$$(terraform output -raw cluster_endpoint)"
 	gh secret set EKS_CLUSTER_CA --body "$$(terraform output -raw cluster_ca_certificate_data)"
-
+	gh secret set REGION --body "$$(terraform output -raw current_region)"
 	@echo "Update Kubeconfig"
 	aws eks --region "$$(terraform output -raw current_region)" update-kubeconfig --name "$$(terraform output -raw cluster_name)"
 
@@ -27,7 +27,7 @@ delete:
 	gh secret delete EKS_CLUSTER || echo "Secret not found or already deleted."
 	gh secret delete EKS_CLUSTER_ENDPOINT || echo "Secret not found or already deleted."
 	gh secret delete EKS_CLUSTER_CA || echo "Secret not found or already deleted."
-
+	gh secret delete REGION || echo "Secret not found or already deleted."
 
 	@echo "✅ Delete completed."  
 
