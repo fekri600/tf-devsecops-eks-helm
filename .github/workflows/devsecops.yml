@@ -72,7 +72,7 @@ jobs:
         docker push $ECR_REPO_URL:$IMAGE_TAG
 
   deploy-terraform:
-    name: Deploy to Helm via Terraform
+    name: Deploy Helm via Terraform
     needs: build-and-scan
     runs-on: ubuntu-latest
     defaults:
@@ -100,7 +100,7 @@ jobs:
     - name: Configure kubeconfig for EKS
       run: |
         aws eks update-kubeconfig \
-          --region ${{ secrets.RIGION }} \
+          --region ${{ secrets.REGION }} \
           --name ${{ secrets.EKS_CLUSTER }}
 
     - name: Terraform Plan with image tag
