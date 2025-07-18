@@ -2,6 +2,7 @@ resource "helm_release" "app" {
   name      = var.name
   namespace = var.namespace
   chart     = var.helm_chart
+  cleanup_on_fail = true
 
   set {
     name  = "image.repository"

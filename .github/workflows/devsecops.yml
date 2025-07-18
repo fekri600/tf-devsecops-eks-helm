@@ -114,7 +114,7 @@ jobs:
       run: |
         terraform plan \
           -var="image_tag=${{ github.sha }}" \
-          -var="ecr_repo_url=${{ secrets.ECR_REPO_URL }}" \
+          -var="ecr_repo_url=${{ needs.build-and-scan.outputs.ecr_image_repo }}" \
           -var="cluster_name=${{ secrets.EKS_CLUSTER }}" \
           -var="cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
           -var="cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
@@ -125,7 +125,7 @@ jobs:
       run: |
         terraform apply -auto-approve \
           -var="image_tag=${{ github.sha }}" \
-          -var="ecr_repo_url=${{ secrets.ECR_REPO_URL }}" \
+          -var="ecr_repo_url=${{ needs.build-and-scan.outputs.ecr_image_repo }}" \
           -var="cluster_name=${{ secrets.EKS_CLUSTER }}" \
           -var="cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
           -var="cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
