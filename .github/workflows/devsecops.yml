@@ -1,4 +1,4 @@
-name: Secure ECR-to-EKS Pipeline
+name: Secure ECR-EKS-Helm Pipeline
 
 on:
   push:
@@ -72,7 +72,7 @@ jobs:
         docker push $ECR_REPO_URL:$IMAGE_TAG
 
   deploy-terraform:
-    name: Deploy to EKS via Terraform
+    name: Deploy to Helm via Terraform
     needs: build-and-scan
     runs-on: ubuntu-latest
     defaults:
@@ -101,18 +101,18 @@ jobs:
       run: |
         terraform plan \
           -var="helm.image_tag=${{ github.sha }}" \
-          -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
-          -var="helm.cluster_name"=${{ secrets.EKS_CLUSTER }}"
-          -var="helm.cluster_ca_certificate_data"=${{ secrets.EKS_CLUSTER_CA }}"
-          -var="helm.cluster_endpoint"=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
-
-
+          -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}" \
+          -var="helm.cluster_name=${{ secrets.EKS_CLUSTER }}" \
+          -var="helm.cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
+          -var="helm.cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
+    
 
     - name: Terraform Apply with image tag
       run: |
         terraform apply -auto-approve \
           -var="helm.image_tag=${{ github.sha }}" \
-          -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}"
-          -var="helm.cluster_name"=${{ secrets.EKS_CLUSTER }}"
-          -var="helm.cluster_ca_certificate_data"=${{ secrets.EKS_CLUSTER_CA }}"
-          -var="helm.cluster_endpoint"=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
+          -var="helm.ecr_repo_url=${{ secrets.ECR_REPO_URL }}" \
+          -var="helm.cluster_name=${{ secrets.EKS_CLUSTER }}" \
+          -var="helm.cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
+          -var="helm.cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
+        
