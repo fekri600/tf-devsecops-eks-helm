@@ -100,10 +100,32 @@ jobs:
           --region us-east-1 \
           --name ${{ secrets.EKS_CLUSTER }}
     
-    - name: Helm cleanup (remove failed release if present)
+
+    - name: Import release into TF state if it already exists
+      id: import
       run: |
-        helm uninstall devsecops-app --namespace default || true
-    
+        set -e
+        RELEASE=devsecops-app
+        NAMESPACE=default
+        TFADDR='module.helm_release.helm_release.app'
+  
+        # Does Helm think the release exists?
+        if helm status "$RELEASE" -n "$NAMESPACE" >/dev/null 2>&1 ; then
+          echo "Helm release $RELEASE exists."
+  
+          # Is it already tracked in state?
+          if terraform state list "$TFADDR" >/dev/null 2>&1 ; then
+            echo "Terraform is already managing $RELEASE."
+          else
+            echo "::group::Importing $RELEASE into Terraform state"
+            terraform import "$TFADDR" "$RELEASE" || true
+            echo "::endgroup::"
+          fi
+        else
+          echo "Helm release $RELEASE not found – nothing to import."
+        fi
+  
+
     - name: Terraform Init
       run: terraform init
 
@@ -118,44 +140,65 @@ jobs:
     
   
 
-    - name: Terraform Apply with image tag
+    # - name: Terraform Apply with image tag
+    #   run: |
+    #     terraform apply -auto-approve \
+    #       -var="image_tag=${{ github.sha }}" \
+    #       -var="ecr_repo_url=${{ secrets.ECR_REPO_URL }}" \
+    #       -var="cluster_name=${{ secrets.EKS_CLUSTER }}" \
+    #       -var="cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
+    #       -var="cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
+    
+
+           # ---------- Terraform Apply (allow failure, capture exit code) -------------
+    - name: Terraform Apply
+      id: apply
+      continue-on-error: true
       run: |
+        set -o pipefail
         terraform apply -auto-approve \
           -var="image_tag=${{ github.sha }}" \
           -var="ecr_repo_url=${{ secrets.ECR_REPO_URL }}" \
           -var="cluster_name=${{ secrets.EKS_CLUSTER }}" \
           -var="cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
           -var="cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
-    
-        
-        - name: Install Helm (for debug)
-          if: failure() && steps.apply.outcome == 'failure'
-          run: |
-            curl -sSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-    
-        - name: Dump Helm status & pod details
-          if: failure() && steps.apply.outcome == 'failure'
-          continue-on-error: true            # don’t double-fail the job
-          env:
-            RELEASE:  devsecops-app           # <- your Helm release name
-            NAMESPACE: default                # <- your release namespace
-          run: |
-            echo "### Helm status"
-            helm status "$RELEASE" -n "$NAMESPACE" || true
-    
-            echo ""
-            echo "### Pods for $RELEASE"
-            kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/instance=$RELEASE -o wide || true
-    
-            # Loop through non-Running pods
-            for pod in $(kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/instance=$RELEASE \
-                         --field-selector=status.phase!=Running,status.phase!=Succeeded \
-                         -o jsonpath='{.items[*].metadata.name}'); do
-              echo ""
-              echo "###### DESCRIBE $pod"
-              kubectl describe pod "$pod" -n "$NAMESPACE" || true
-    
-              echo ""
-              echo "###### LOGS (last 200 lines) $pod"
-              kubectl logs --tail=200 "$pod" -n "$NAMESPACE" || true
-            done
+        echo "tf_exitcode=$?" >> "$GITHUB_OUTPUT"
+
+    # ---------- Debug ONLY if Terraform failed ---------------------------------
+    - name: Install Helm (for debug)
+      if: steps.apply.outputs.tf_exitcode != '0'
+      run: |
+        curl -sSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+    - name: Dump Helm status & pod details
+      if: steps.apply.outputs.tf_exitcode != '0'
+      continue-on-error: true
+      env:
+        RELEASE:   devsecops-app
+        NAMESPACE: default
+      run: |
+        echo "### Helm status"
+        helm status "$RELEASE" -n "$NAMESPACE" || true
+
+        echo ""
+        echo "### Pods for $RELEASE"
+        kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/instance=$RELEASE -o wide || true
+
+        for pod in $(kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/instance=$RELEASE \
+                     --field-selector=status.phase!=Running,status.phase!=Succeeded \
+                     -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+          echo ""
+          echo "###### DESCRIBE $pod"
+          kubectl describe pod "$pod" -n "$NAMESPACE" || true
+
+          echo ""
+          echo "###### LOGS (last 200 lines) $pod"
+          kubectl logs --tail=200 "$pod" -n "$NAMESPACE" || true
+        done
+
+    # ---------- Fail the job after debugging (only if Terraform failed) ---------
+    - name: Mark job failed if Terraform failed
+      if: steps.apply.outputs.tf_exitcode != '0'
+      run: |
+        echo "Terraform apply failed with exit code ${{ steps.apply.outputs.tf_exitcode }}"
+        exit 1
