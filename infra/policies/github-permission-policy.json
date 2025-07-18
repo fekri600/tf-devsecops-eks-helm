@@ -13,6 +13,14 @@
         "ecr:CompleteLayerUpload"
       ],
       "Resource": "*"
+    }, 
+    {
+      "Effect": "Allow",
+      "Action": [
+        "eks:DescribeCluster",
+        "eks:ListClusters"
+      ],
+      "Resource": "*"
     }
   ]
 }
