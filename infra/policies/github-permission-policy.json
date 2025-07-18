@@ -18,7 +18,8 @@
       "Effect": "Allow",
       "Action": [
         "eks:DescribeCluster",
-        "eks:ListClusters"
+        "eks:ListClusters", 
+        "eks:AccessKubernetesApi"
       ],
       "Resource": "*"
     }
