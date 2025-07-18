@@ -100,19 +100,20 @@ jobs:
           --region us-east-1 \
           --name ${{ secrets.EKS_CLUSTER }}
     
+    
+    - name: Debug - Check AWS CLI Version
+      run: aws --version
+  
+    - name: Debug - Check aws-iam-authenticator presence
+      run: which aws-iam-authenticator || echo "aws-iam-authenticator not found"
+    
     - name: Debug - Verify Kubeconfig Exists 
       run: cat ~/.kube/config
     
     - name: Debug - Test K8s Auth as Assumed Role 
       run: |
         kubectl auth can-i create configmaps -n kube-system
-
-    - name: Debug - Check AWS CLI Version
-      run: aws --version
-  
-    - name: Debug - Check aws-iam-authenticator presence
-      run: which aws-iam-authenticator || echo "aws-iam-authenticator not found"
-        
+    
 
     - name: Terraform Init
       run: terraform init
