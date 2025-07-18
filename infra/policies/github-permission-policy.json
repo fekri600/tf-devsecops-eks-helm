@@ -18,9 +18,31 @@
       "Effect": "Allow",
       "Action": [
         "eks:DescribeCluster",
-        "eks:ListClusters", 
-        "eks:AccessKubernetesApi"
+        "eks:ListClusters",
+        "eks:AccessCluster", 
+        "eks:UpdateCluster", 
+        "eks:TagResource",
+        "eks:DescribeNodegroup",
+        "eks:ListFargateProfiles",
+        "eks:ListAddons",
+        "eks:DescribeAddonVersions",
+        "eks:DescribeAddon"
       ],
+      "Resource": "*"
+    }, 
+    {
+      "Effect": "Allow",
+      "Action": "eks:UpdateKubeconfig", 
+      "Resource": "*" 
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ssm:GetParameter", 
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:DescribeRegions", 
       "Resource": "*"
     }
   ]
