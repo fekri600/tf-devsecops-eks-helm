@@ -2,12 +2,12 @@ resource "helm_release" "app" {
   name      = var.name
   namespace = var.namespace
   chart     = var.helm_chart
-  # Give Helm more room before Terraform bails out
-  timeout          = 600    # seconds
-  wait             = true   # default, but be explicit
-  atomic           = true   # roll back on failure
+
+  timeout          = 600
+  wait             = true
+  atomic           = true
   recreate_pods    = true
-  cleanup_on_fail  = true   # you already set this
+  cleanup_on_fail  = true
 
   set {
     name  = "image.repository"
@@ -22,5 +22,21 @@ resource "helm_release" "app" {
   set {
     name  = "replicaCount"
     value = var.replica_count
+  }
+
+  # Override service port (default 80 → 3000)
+  set {
+    name  = "service.port"
+    value = 3000
+  }
+
+  # Also update container probes (if chart supports it)
+  set {
+    name  = "livenessProbe.httpGet.port"
+    value = 3000
+  }
+  set {
+    name  = "readinessProbe.httpGet.port"
+    value = 3000
   }
 }
