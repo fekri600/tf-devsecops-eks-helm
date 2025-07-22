@@ -149,36 +149,15 @@ To contribute:
 git clone https://github.com/<your-org>/devsecops-project.git
 cd devsecops-project/infra
 
-terraform init
-terraform workspace new staging   # or production
+# Initialize using the Makefile (instead of manual terraform init)
+# To create a new workspace (e.g., staging or production),
+# you can modify the Makefile or run directly:
+# terraform workspace new staging
+# terraform workspace new production
+
 ```
 
-### 2. Configure `terraform.tfvars`
 
-Example (`infra/terraform.tfvars`):
-
-```hcl
-prefix             = "fs"
-project_settings = {
-  project   = "devsecops"
-  aws_region = "us-east-1"
-}
-
-network = {
-  vpc_cidr            = "10.0.0.0/16"
-  public_subnets      = ["10.0.1.0/24", "10.0.2.0/24"]
-  private_subnets     = ["10.0.11.0/24", "10.0.12.0/24"]
-  availability_zones  = ["us-east-1a", "us-east-1b"]
-  enable_dns_support  = true
-  enable_dns_hostnames = true
-}
-
-helm = {
-  name        = "devsecops-app"
-  namespace   = "default"
-  replica_count = 2
-  port        = 3000
-}
 ```
 
 ### 3. Deploy Infrastructure
