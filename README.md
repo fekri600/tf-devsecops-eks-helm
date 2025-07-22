@@ -155,15 +155,11 @@ cd devsecops-project/infra
     - terraform workspace new production
 
 
-
-
-
-
 ### 2. Deploy Infrastructure
  Use the Makefile to deploy (wraps terraform apply)
 ```bash
 make apply
-``
+```
 
 ### 4. Deploy Application
 
