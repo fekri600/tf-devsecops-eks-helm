@@ -9,6 +9,8 @@ The pipeline features:
 - **Helm-based Kubernetes deployment** on EKS
 
 ---
+!Diagram(diagram.png)
+---
 
 ## Repository Layout
 
