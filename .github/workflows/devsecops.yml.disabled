@@ -49,7 +49,7 @@ jobs:
       with:
         image-ref: 'devsecops'
         format: 'table'
-        exit-code: '0'
+        exit-code: '1'
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
 
