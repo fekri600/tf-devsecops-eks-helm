@@ -149,11 +149,10 @@ To contribute:
 git clone https://github.com/<your-org>/devsecops-project.git
 cd devsecops-project/infra
 ```
-# Initialize using the Makefile (instead of manual terraform init)
-# To create a new workspace (e.g., staging or production),
-# you can modify the Makefile or run directly:
-# terraform workspace new staging
-# terraform workspace new production
+- Initialize using the Makefile (instead of manual terraform init)
+- To create a new workspace (e.g., staging or production), you can modify the Makefile or run directly:
+    - terraform workspace new staging
+    - terraform workspace new production
 
 
 
@@ -161,10 +160,10 @@ cd devsecops-project/infra
 
 
 ### 2. Deploy Infrastructure
-# Use the Makefile to deploy (wraps terraform apply)
+ Use the Makefile to deploy (wraps terraform apply)
 ```bash
 make apply
-```
+``
 
 ### 4. Deploy Application
 
