@@ -134,10 +134,14 @@ To contribute:
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Helm](https://helm.sh/docs/intro/install/)
 - [Docker](https://www.docker.com/)
-- [GitHub CLI (`gh`)](https://cli.github.com/) (for managing repository workflows and triggering pipeline runs)
-- GitHub repository configured with:
-  - `AWS_ACCOUNT_ID`, `AWS_REGION`, `SONAR_TOKEN` as repository secrets.
-  - OIDC trust set up via Terraform (`oidc/` module).
+- [GitHub CLI (`gh`)](https://cli.github.com/) (used by the Makefile to automatically create GitHub Actions secrets)
+- **SonarCloud account**:
+  1. Sign up at [SonarCloud](https://sonarcloud.io/).
+  2. Create a project linked to your GitHub repo.
+  3. Generate a **SonarCloud API token**.
+  4. Add the token manually as a GitHub secret: `SONAR_TOKEN`.
+
+> **Note:** All other secrets (`AWS_ROLE_TO_ASSUME`, `ECR_REPO_URL`, `EKS_CLUSTER`, etc.) are automatically set by the `Makefile` when you run `make deploy`.
 
 ---
 
@@ -161,7 +165,7 @@ cd devsecops-project/infra
 make apply
 ```
 
-### 4. Deploy Application
+### 3. Deploy Application
 
 The CI/CD pipeline automatically:
 1. Builds & scans Docker image.
