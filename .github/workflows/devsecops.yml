@@ -1,4 +1,4 @@
-name: Secure ECR-EKS-Helm Pipeline
+name: Secure ECR-EKS-Helm Blue-Green Pipeline
 
 on:
   push:
@@ -7,6 +7,14 @@ on:
 permissions:
   id-token: write
   contents: read
+
+env:
+  AWS_REGION: us-east-1
+  STAGING_NAMESPACE: staging
+  PRODUCTION_NAMESPACE: production
+  HELM_CHART_PATH: ./helm-chart
+  BLUE_COLOR: blue
+  GREEN_COLOR: green
 
 jobs:
   build-and-scan:
@@ -42,12 +50,12 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     - name: Build Docker image
-      run: docker build -t devsecops:latest .
+      run: docker build -t devsecops:${{ github.sha }} .
 
     - name: Scan Docker image with Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'devsecops'
+        image-ref: 'devsecops:${{ github.sha }}'
         format: 'table'
         exit-code: '0'
         vuln-type: 'os,library'
@@ -57,7 +65,7 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-        aws-region: us-east-1
+        aws-region: ${{ env.AWS_REGION }}
 
     - name: Log in to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
@@ -65,19 +73,15 @@ jobs:
     - name: Tag and push Docker image to ECR
       env:
         ECR_REPO_URL: ${{ secrets.ECR_REPO_URL }}
-        
+      
       run: |
-        IMAGE_TAG=${{ github.sha }}
-        docker tag devsecops:latest $ECR_REPO_URL:$IMAGE_TAG
-        docker push $ECR_REPO_URL:$IMAGE_TAG
+        docker tag devsecops:${{ github.sha }} $ECR_REPO_URL:${{ github.sha }}
+        docker push $ECR_REPO_URL:${{ github.sha }}
 
-  deploy-terraform:
-    name: Deploy Helm via Terraform
+  deploy-staging:
+    name: Blue-Green Deployment to Staging
     needs: build-and-scan
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app_deploy
 
     steps:
     - name: Checkout code
@@ -87,48 +91,168 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-        aws-region: us-east-1
+        aws-region: ${{ env.AWS_REGION }}
 
-    - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.11.4
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
 
-    - name: Configure kubeconfig for EKS
+    - name: Configure kubeconfig
       run: |
         aws eks update-kubeconfig \
-          --region us-east-1 \
+          --region ${{ env.AWS_REGION }} \
           --name ${{ secrets.EKS_CLUSTER }}
-    
-        # (after Terraform Init and kubeconfig)
 
-    - name: Helm cleanup (remove failed release if present)
+    - name: Deploy Green to Staging
       run: |
-        helm uninstall devsecops-app --namespace default || true
+        # Get current active deployment color
+        CURRENT_COLOR=$(kubectl get svc devsecops-app -n ${{ env.STAGING_NAMESPACE }} -o jsonpath='{.spec.selector.color}' || echo "")
+        
+        if [ "$CURRENT_COLOR" == "${{ env.BLUE_COLOR }}" ]; then
+          NEW_COLOR=${{ env.GREEN_COLOR }}
+        else
+          NEW_COLOR=${{ env.BLUE_COLOR }}
+        fi
 
+        echo "Deploying $NEW_COLOR deployment to staging"
+        
+        helm upgrade --install devsecops-app ${{ env.HELM_CHART_PATH }} \
+          --namespace ${{ env.STAGING_NAMESPACE }} \
+          --set image.tag=${{ github.sha }} \
+          --set deployment.color=$NEW_COLOR \
+          --set service.selector.color=$NEW_COLOR \
+          --atomic \
+          --timeout 5m
 
-    - name: Terraform Init
-      run: terraform init
-
-    - name: Terraform Plan with image tag
+    - name: Run Staging Tests
       run: |
-        terraform plan \
-          -var="image_tag=${{ github.sha }}" \
-          -var="ecr_repo_url=${{ secrets.ECR_REPO_URL }}" \
-          -var="cluster_name=${{ secrets.EKS_CLUSTER }}" \
-          -var="cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
-          -var="cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
-    
-  
+        # Add integration tests against staging here
+        echo "Running tests against staging environment"
+        # Example: curl http://staging-service-url/health
 
-    - name: Terraform Apply with image tag
+    - name: Switch Staging Traffic
+      if: success()
       run: |
-        terraform apply -auto-approve \
-          -var="image_tag=${{ github.sha }}" \
-          -var="ecr_repo_url=${{ secrets.ECR_REPO_URL }}" \
-          -var="cluster_name=${{ secrets.EKS_CLUSTER }}" \
-          -var="cluster_ca_certificate_data=${{ secrets.EKS_CLUSTER_CA }}" \
-          -var="cluster_endpoint=${{ secrets.EKS_CLUSTER_ENDPOINT }}"
-    
+        # Get the newly deployed color
+        NEW_COLOR=$(kubectl get svc devsecops-app -n ${{ env.STAGING_NAMESPACE }} -o jsonpath='{.spec.selector.color}')
+        
+        # Update ALB to route traffic to new deployment
+        # This assumes we have ALB configured with target groups for blue/green
+        # We will Replace with our actual ALB and target group ARNs
+        BLUE_TG_ARN=${{ secrets.STAGING_BLUE_TG_ARN }}
+        GREEN_TG_ARN=${{ secrets.STAGING_GREEN_TG_ARN }}
+        
+        if [ "$NEW_COLOR" == "${{ env.BLUE_COLOR }}" ]; then
+          TARGET_GROUP=$BLUE_TG_ARN
+        else
+          TARGET_GROUP=$GREEN_TG_ARN
+        fi
+        
+        # Update ALB listener rule (simplified example)
+        aws elbv2 modify-rule \
+          --rule-arn ${{ secrets.STAGING_ALB_RULE_ARN }} \
+          --actions Type=forward,TargetGroupArn=$TARGET_GROUP
 
+  deploy-production:
+    name: Blue-Green Deployment to Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
+
+    - name: Configure kubeconfig
+      run: |
+        aws eks update-kubeconfig \
+          --region ${{ env.AWS_REGION }} \
+          --name ${{ secrets.EKS_CLUSTER }}
+
+    - name: Approve Production Deployment
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ github.token }}
+        approvers: 'team-leads' # Comma-separated list of GitHub usernames
+
+    - name: Deploy Green to Production
+      run: |
+        # Get current active deployment color
+        CURRENT_COLOR=$(kubectl get svc devsecops-app -n ${{ env.PRODUCTION_NAMESPACE }} -o jsonpath='{.spec.selector.color}' || echo "")
+        
+        if [ "$CURRENT_COLOR" == "${{ env.BLUE_COLOR }}" ]; then
+          NEW_COLOR=${{ env.GREEN_COLOR }}
+        else
+          NEW_COLOR=${{ env.BLUE_COLOR }}
+        fi
+
+        echo "Deploying $NEW_COLOR deployment to production"
+        
+        helm upgrade --install devsecops-app ${{ env.HELM_CHART_PATH }} \
+          --namespace ${{ env.PRODUCTION_NAMESPACE }} \
+          --set image.tag=${{ github.sha }} \
+          --set deployment.color=$NEW_COLOR \
+          --set service.selector.color=$NEW_COLOR \
+          --atomic \
+          --timeout 5m
+
+    - name: Run Smoke Tests in Production
+      run: |
+        # Add smoke tests against production
+        echo "Running smoke tests against production environment"
+        # Example: curl http://prod-service-url/health
+
+    - name: Gradually Shift Production Traffic
+      if: success()
+      run: |
+        # Get the newly deployed color
+        NEW_COLOR=$(kubectl get svc devsecops-app -n ${{ env.PRODUCTION_NAMESPACE }} -o jsonpath='{.spec.selector.color}')
+        
+        # Update ALB to gradually shift traffic to new deployment
+        BLUE_TG_ARN=${{ secrets.PRODUCTION_BLUE_TG_ARN }}
+        GREEN_TG_ARN=${{ secrets.PRODUCTION_GREEN_TG_ARN }}
+        
+        if [ "$NEW_COLOR" == "${{ env.BLUE_COLOR }}" ]; then
+          PRIMARY_TG=$BLUE_TG_ARN
+          SECONDARY_TG=$GREEN_TG_ARN
+        else
+          PRIMARY_TG=$GREEN_TG_ARN
+          SECONDARY_TG=$BLUE_TG_ARN
+        fi
+        
+        # Gradual traffic shift (10% → 50% → 100%)
+        for WEIGHT in 10 50 100; do
+          echo "Shifting $WEIGHT% traffic to new deployment"
+          aws elbv2 modify-rule \
+            --rule-arn ${{ secrets.PRODUCTION_ALB_RULE_ARN }} \
+            --actions \
+              "Type=forward,TargetGroupArn=$PRIMARY_TG,Weight=$WEIGHT" \
+              "Type=forward,TargetGroupArn=$SECONDARY_TG,Weight=$((100-WEIGHT))"
           
+          if [ "$WEIGHT" -lt 100 ]; then
+            echo "Waiting 3 minutes before next shift..."
+            sleep 180
+          fi
+        done
+
+    - name: Cleanup Old Production Deployment
+      if: success()
+      run: |
+        # Get inactive color
+        ACTIVE_COLOR=$(kubectl get svc devsecops-app -n ${{ env.PRODUCTION_NAMESPACE }} -o jsonpath='{.spec.selector.color}')
+        
+        if [ "$ACTIVE_COLOR" == "${{ env.BLUE_COLOR }}" ]; then
+          OLD_COLOR=${{ env.GREEN_COLOR }}
+        else
+          OLD_COLOR=${{ env.BLUE_COLOR }}
+        fi
+        
+        echo "Cleaning up $OLD_COLOR deployment"
+        helm uninstall devsecops-app-$OLD_COLOR --namespace ${{ env.PRODUCTION_NAMESPACE }} || true
